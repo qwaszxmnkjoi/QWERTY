@@ -1,0 +1,99 @@
+{% load static sass_tags user %}
+
+{% now "Y-m-d" as today_date %}
+
+{% if not user %}
+    {% customer_get as user %}
+{% endif %}
+
+<!DOCTYPE html>
+<html lang="{{ user.language|default_if_none:'en' }}">
+<head>
+    <link rel="preload" href="https://telegram.org/js/telegram-web-app.js" as="script"/>
+
+    <link rel="preload" href="{% static 'js/assets/venobox/venobox.min.js' %}" as="script"/>
+    <link rel="preload" href="{% static 'js/chat/page.js' %}" as="script"/>
+
+    <link rel="preload" href="{% static 'css/chat/page.css' %}" as="style"/>
+    <link rel="preload" href="{% sass_src 'css/chat/chat.scss' %}" as="style"/>
+    <link rel="preload" href="{% sass_src 'css/assets/venobox/venobox.min.css' %}" as="style"/>
+
+    <link rel="prefetch" href="{% static 'css/assets/fontawesome/fontawesome.min.css' %}" as="style">
+    <link rel="prefetch" href="{% static 'css/assets/fontawesome/solid.min.css' %}" as="style">
+
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default_if_none:'Emigrant Chat' }}</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <link rel="stylesheet" href="{% static 'css/chat/page.css' %}" type="text/css"/>
+    <link rel="stylesheet" href="{% sass_src 'css/chat/chat.scss' %}" type="text/css"/>
+
+    <link rel="stylesheet" href="{% static 'css/assets/fontawesome/fontawesome.min.css' %}" type="text/css"/>
+    <link rel="stylesheet" href="{% static 'css/assets/fontawesome/solid.min.css' %}" type="text/css"/>
+    <link rel="stylesheet" href="{% static 'css/assets/venobox/venobox.min.css' %}" type="text/css" media="screen"/>
+</head>
+
+<body>
+<section class="chatbox-panel">
+    <header class="chatbox-panel__header">
+        <aside style="flex:3" data-user-photo></aside>
+        <aside style="flex:6" data-user-name></aside>
+        <aside style="flex:3; text-align:right;">
+            <button class="chatbox-panel-detail"><i class="fa fa-ellipsis-vertical" aria-hidden="true"></i></button>
+        </aside>
+    </header>
+    <main class="chatbox-panel__main" style="flex:1">
+        <div class="loader"></div>
+    </main>
+    <footer class="chatbox-panel__footer">
+        <aside style="flex:1;" class="chatbox-btn" data-menu-id="file">
+            <i class="fa fa-plus"></i>
+        </aside>
+        <div class="btn-menu" data-btn-menu="file">
+            <div class="btn-menu__item" data-photo-select>
+                <i class="fa fa-image"></i> <span class="btn-menu__item__text">Photo</span>
+            </div>
+            <div class="btn-menu__item" data-file-select>
+                <i class="fa fa-file"></i><span class="btn-menu__item__text">Document</span>
+            </div>
+        </div>
+        <aside style="flex:10">
+            <textarea data-text name="message" type="text" placeholder="{{ placeholder_text|default_if_none:'Type your message here...' }}" rows="1" autofocus></textarea>
+        </aside>
+        <aside style="flex:1;" class="chatbox-btn" data-send-message>
+            <i class="fa fa-paper-plane"></i>
+        </aside>
+    </footer>
+    <input type="file" multiple style="display: none;">
+    <div class="chatbox-popup" data-popup="file">
+        <div class="chatbox-popup__data">
+            <div class="chatbox-popup__data__header">
+                <i class="fa fa-close btn" data-close-btn></i>
+                <span class="title" data-popup-title>Title</span>
+            </div>
+            <div class="chatbox-popup__data__content" data-popup-content>
+            </div>
+            <div class="chatbox-popup__data__footer">
+                <textarea data-caption type="text" name="caption" placeholder="{{ placeholder_caption|default_if_none:'Add a Caption...' }}" rows="1" data-count-dimension="2"
+                          autofocus></textarea>
+                <div class="chatbox-btn" data-send-file>
+                    <i class="fa fa-paper-plane"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+<script src="{% static 'js/jquery-3.7.0.min.js' %}"></script>
+<script src="{% static 'js/assets/minidenticons/minidenticons.min.js' %}" type="module"></script>
+<script src="{% static 'js/assets/venobox/venobox.min.js' %}"></script>
+<script src="{% static 'js/chat/page.js' %}"></script>
+<script>
+    $(function () {
+        new em.chat.Chat({'category_id': {{ category.id }}, 'country_id': {{ country.id }}, 'user_id': {{ user.id }}});
+    });
+</script>
+</html>
