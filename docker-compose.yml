@@ -1,0 +1,110 @@
+version: '3.8'
+volumes:
+  web-root:
+  certbot-etc:
+  certbot-var:
+
+  pgdata:
+  portainer_data:
+  redis_data:
+networks:
+  web:
+    external: true
+  internal:
+    external: false
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    restart: always
+    volumes:
+      - ~/Emigrant/var/static/:/opt/app/static
+      - ~/Emigrant/var/media:/opt/app/media
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - ./docker/nginx/configs/snippets/:/etc/nginx/snippets/
+      - ./docker/nginx/configs/conf.d/:/etc/nginx/conf.d/
+      - ./docker/nginx/configs/nginx.conf:/etc/nginx/nginx.conf
+      - web-root:/var/www/html
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - python
+      - portainer
+    networks:
+      - internal
+      - web
+
+  certbot:
+    image: certbot/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - nginx
+
+  postgres:
+    image: postgres:12.4
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - internal
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - internal
+    volumes:
+      - redis_data:/data/base
+
+  python: &python
+    image: megaelebrus/emigrant:latest
+    env_file:
+      - .env
+    volumes:
+      - ./var/static:/opt/app/static
+      - ./var/media:/opt/app/media
+      - ./settings.py:/opt/app/settings.py
+      - certbot-etc:/etc/letsencrypt
+    depends_on:
+      - postgres
+    networks:
+      - internal
+    ports:
+      - 8093:8093
+    command: daphne -b 0.0.0.0 -p 8093 -e ssl:8092:privateKey=/etc/letsencrypt/live/bot.ggs.com.ua.conf/privkey.pem:certKey=/etc/letsencrypt/live/bot.ggs.com.ua.conf/fullchain.pem Emigrant.asgi:application
+
+  celery_worker:
+    <<: *python
+    command: celery -A Emigrant worker --concurrency=100 --pool=threads -l INFO -E -B
+    ports: [ ]
+    restart: always
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - internal
+
+  portainer:
+    image: portainer/portainer-ce
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - internal
+    ports:
+      - 9000:9000
